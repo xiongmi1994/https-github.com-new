@@ -38,6 +38,12 @@ on:
     - cron: "33 * * * *"
 
   workflow_dispatch:
+    inputs:
+      test_notification:
+        description: "仅发送测试通知（不执行完整抓取）"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: crawler-${{ github.ref_name }}
@@ -167,7 +173,12 @@ jobs:
           S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
           S3_REGION: ${{ secrets.S3_REGION }}
           GITHUB_ACTIONS: true
-        run: uv run python -m trendradar
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.test_notification }}" = "true" ]; then
+            uv run python -m trendradar --test-notification
+          else
+            uv run python -m trendradar
+          fi
 
       - name: Commit generated reports
         if: success()
